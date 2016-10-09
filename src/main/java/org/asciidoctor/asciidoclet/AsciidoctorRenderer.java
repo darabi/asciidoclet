@@ -21,8 +21,14 @@ import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Tag;
 import org.asciidoctor.*;
+import org.asciidoctor.extension.RubyExtensionRegistry;
+import org.asciidoctor.internal.JRubyRuntimeContext;
+import org.asciidoctor.internal.RubyUtils;
 
 import static org.asciidoctor.Asciidoctor.Factory.create;
+
+import java.net.URL;
+import java.util.Enumeration;
 
 /**
  * Doclet renderer using and configuring Asciidoctor.
@@ -82,7 +88,31 @@ public class AsciidoctorRenderer implements DocletRenderer {
         opts.attributes(buildAttributes(docletOptions, errorReporter));
         if (docletOptions.requires().size() > 0) {
             for (String require : docletOptions.requires()) {
-                asciidoctor.rubyExtensionRegistry().requireLibrary(require);
+				try {
+					ClassLoader cl = getClass().getClassLoader();
+					// Enumeration<URL> resourceUrls = (cl != null ? cl.getResources("specifications") : ClassLoader.getSystemResources("specifications"));
+					System.err.println("Looking for MANIFEST.MF files");
+					Enumeration<URL> resourceUrls = (cl != null ? cl.getResources("META-INF/MANIFEST.MF") : ClassLoader.getSystemResources("META-INF/MANIFEST.MF"));
+					while (resourceUrls.hasMoreElements()) {
+						URL url = (URL) resourceUrls.nextElement();
+
+						System.err.println(url);
+					}
+					asciidoctor.rubyExtensionRegistry().requireLibrary(require);
+				} catch (Exception e) {
+					System.err.println("Error " + e);
+					System.err.println("Error class " + e.getClass());
+					System.err.println("Now trying requireLibrary");
+					try {
+						RubyExtensionRegistry registry = asciidoctor.rubyExtensionRegistry();
+						registry.loadClass(Class.class.getResourceAsStream("/" + require + ".rb"));
+						registry.requireLibrary(require);
+						// RubyUtils.requireLibrary(JRubyRuntimeContext.get(), require);
+					} catch (Exception e2) {
+						System.err.println("Error " + e);
+						System.err.println("Error class " + e.getClass());
+					}
+				}
             }
         }
         return opts.get();

@@ -19,6 +19,13 @@ import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.Doclet;
 import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import org.asciidoctor.asciidoclet.*;
 
 /**
@@ -272,9 +279,21 @@ public class Asciidoclet extends Doclet {
     private boolean run(StandardAdapter standardDoclet) {
         AsciidoctorRenderer renderer = new AsciidoctorRenderer(docletOptions, rootDoc);
         try {
+			ClassLoader cl = getClass().getClassLoader();
+			// Enumeration<URL> resourceUrls = (cl != null ? cl.getResources("specifications") : ClassLoader.getSystemResources("specifications"));
+			System.err.println("Looking for MANIFEST.MF files");
+			Enumeration<URL> resourceUrls = (cl != null ? cl.getResources("META-INF/MANIFEST.MF") : ClassLoader.getSystemResources("META-INF/MANIFEST.MF"));
+            while (resourceUrls.hasMoreElements()) {
+				URL url = (URL) resourceUrls.nextElement();
+
+				System.err.println(url);
+			}
             return iterator.render(rootDoc, renderer) &&
                     standardDoclet.start(rootDoc);
-        } finally {
+        } catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		} finally {
             renderer.cleanup();
         }
     }
